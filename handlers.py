@@ -4,7 +4,7 @@ class SensorHandler:
     the condition on when to trigger an action
     and the action method itself
     """
-    def __init__(self, sconfig, data_type='default'):
+    def __init__(self, sconfig, data_type='default', timeout=1):
         """
         Parameters
         ----------
@@ -12,6 +12,8 @@ class SensorHandler:
             you can add multiple callbacks, they will be called in order
         data_type : str
             "gauge" or "counter"
+        timeout : int | float
+            timeout between callbacks in seconds
         """
         # parse config
         self.sconfig = sconfig
@@ -20,6 +22,9 @@ class SensorHandler:
             self.data_type = sconfig['data_type']
         else:
             self.data_type = data_type
+
+        self.timeout = timeout
+        self._next_msg_time = 0
 
         self.on_message = None
 
@@ -32,7 +37,12 @@ class SensorHandler:
             raise NotImplementedError("No handler function set")
 
         timestamp, value, unit = self._decode_payload(msg.payload)
-        self.on_message(timestamp=timestamp, value=value, unit=unit, sconfig=self.sconfig)
+        if timestamp < self._next_msg_time:
+            return
+        done = self.on_message(timestamp=timestamp, value=value, unit=unit, sconfig=self.sconfig)
+
+        if done and self.timeout > 1:
+            self._next_msg_time = timestamp + self.timeout
 
     @staticmethod
     def _decode_payload(payload):
