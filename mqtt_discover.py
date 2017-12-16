@@ -44,3 +44,21 @@ def discover_config(flm):
     else:
         client.disconnect()
         raise LookupError('No config received')
+
+def discover_sensors_by_type(flm, type):
+    """
+    Get a list of sensor configurations matching a certain type
+
+    Parameters
+    ----------
+    flm : str
+    type : str
+        'electricity', 'water', etc.
+
+    Returns
+    -------
+    [dict]
+    """
+    config = discover_config(flm)
+    sensors = [sensor for sensor in config.values() if sensor.get('type') == type]
+    return sensors
